@@ -2,17 +2,18 @@ name: CI Example
 
 on:
   push:
-    branches:
-      - main  # Run this workflow when changes are pushed to the main branch
+    branches: [main]
+  pull_request:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Use an Ubuntu virtual machine
+    runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3  # Check out the repository code
+        uses: actions/checkout@v3
 
-      # Step 8: Use a repository secret
+      # Optional: Step 8 — verify a repository secret exists
       - name: Use secret
         env:
           API_KEY: ${{ secrets.API_KEY }}
@@ -22,19 +23,17 @@ jobs:
           fi
           echo "Secret is available (masked)."
 
-      - name: Run tests
-        run: |
-          echo "Running tests..."
-          python3 -m unittest discover -s tests -p "test_*.py" -v
-
-      # Step 7: Use a pre-built action to install Node.js
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          node-version: '16'
+          python-version: '3.9'
 
-      - name: Build the application
+      - name: Install dependencies (if requirements.txt exists)
+        if: ${{ hashFiles('requirements.txt') != '' }}
         run: |
-          echo "Building the app..."
-          npm install
-          npm run build
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests (if tests exist)
+        if: ${{ hashFiles('tests/test_*.py') != '' }}
+        run: python -m unittest discover -s tests -p "test_*.py" -v
